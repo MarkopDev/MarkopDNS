@@ -20,7 +20,7 @@ namespace MarkopDns
         {
             _config = config;
 
-            _udpClient = new UdpClient(new IPEndPoint(IPAddress.Parse(config.DnsServer!.Host), config.DnsServer.Port));
+            _udpClient = new UdpClient(new IPEndPoint(IPAddress.Parse(config.Dns!.Host), config.Dns.Port));
         }
 
         public static DnsServer GetInstance(Config config)
@@ -104,12 +104,12 @@ namespace MarkopDns
 
             foreach (var question in questions)
             {
-                var matchedQuestion = _config.Records!.FirstOrDefault(record => record.Key == question.Name
+                var matchedQuestion = _config.Dns!.Records!.FirstOrDefault(record => record.Key == question.Name
                     && record.Value.Type == Enum.GetName((DnsType) question.Type));
 
                 if (matchedQuestion.Equals(default(KeyValuePair<string, Record>)))
                 {
-                    var dnsServerProxy = new IPEndPoint(IPAddress.Parse(_config.DefaultDns!), 53);
+                    var dnsServerProxy = new IPEndPoint(IPAddress.Parse(_config.Dns.Default!), 53);
                     using var proxyClient = new UdpClient();
                     proxyClient.Connect(dnsServerProxy);
                     await proxyClient.SendAsync(e.Buffer, e.Buffer.Length);
@@ -122,7 +122,7 @@ namespace MarkopDns
                 var typeBytes = BitConverter.GetBytes(question.Type).Reverse().ToArray();
                 var classBytes = BitConverter.GetBytes(question.Class).Reverse().ToArray();
 
-                var ttlBytes = BitConverter.GetBytes(_config.DnsServer!.Ttl).Reverse().ToArray();
+                var ttlBytes = BitConverter.GetBytes(_config.Dns!.Ttl).Reverse().ToArray();
 
                 var ipBytes = IPAddress.Parse("127.0.0.1").GetAddressBytes();
                 var dataLengthBytes = BitConverter.GetBytes((ushort) ipBytes.Length).Reverse().ToArray();

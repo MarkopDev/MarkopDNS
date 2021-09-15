@@ -21,8 +21,8 @@ namespace MarkopDns
         private ProxyServer(Config config)
         {
             _config = config;
-            _tcpListener = new TcpListener(new IPEndPoint(IPAddress.Parse(config.ProxyServer!.Host),
-                config.ProxyServer.Port));
+            _tcpListener = new TcpListener(new IPEndPoint(IPAddress.Parse(config.Proxy!.Host),
+                config.Proxy.Port));
         }
 
         public static ProxyServer GetInstance(Config config)
@@ -236,7 +236,7 @@ namespace MarkopDns
                     continue;
                 }
 
-                if (DateTime.UtcNow.Ticks - now > _config.ProxyServer!.TimeToAlive * 10_000_000)
+                if (DateTime.UtcNow.Ticks - now > _config.Proxy!.TimeToAlive * 10_000_000)
                     try
                     {
                         await networkStream.WriteAsync(new byte[] {0});
