@@ -1,5 +1,7 @@
 ﻿using System.Linq;
+using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace MarkopDns
 {
@@ -11,6 +13,14 @@ namespace MarkopDns
             return segments.SelectMany(segment =>
                     new[] {(byte) segment.Length}.Concat(Encoding.ASCII.GetBytes(segment))).ToArray()
                 .Concat(new byte[] {0x00}).ToArray();
+        }
+        public static Task WaitUtilDataAvailable(this NetworkStream networkStream)
+        {
+            return Task.Run(async () =>
+            {
+                while (!networkStream.DataAvailable)
+                    await Task.Delay(5);
+            });
         }
     }
 }

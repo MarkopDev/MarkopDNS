@@ -6,6 +6,7 @@ using System.Threading;
 using System.Net.Sockets;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using MarkopDns.Enums;
 using MarkopDns.Models;
 
@@ -28,18 +29,21 @@ namespace MarkopDns
             return new DnsServer(config);
         }
 
-        public async void Start(CancellationToken? cancellationToken = null)
+        public async void Start(CancellationToken? cat = null)
         {
+            var cancellationToken = cat ?? new CancellationTokenSource().Token;
             while (true)
             {
                 try
                 {
-                    HandleRequest(await _udpClient.ReceiveAsync());
+                    HandleRequest(await _udpClient.ReceiveAsync(cancellationToken));
 
                     if (cancellationToken is not {IsCancellationRequested: true})
-                        continue;
-
-                    _udpClient.Close();
+                        throw new TaskCanceledException();
+                }
+                catch (TaskCanceledException)
+                {
+                    Stop();
                     break;
                 }
                 catch (Exception ex)

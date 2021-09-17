@@ -30,19 +30,22 @@ namespace MarkopDns
             return new ProxyServer(config);
         }
 
-        public async void Start(CancellationToken? cancellationToken = null)
+        public async void Start(CancellationToken? cat = null)
         {
+            var cancellationToken = cat ?? new CancellationTokenSource().Token;
             _tcpListener.Start();
             while (true)
             {
                 try
                 {
-                    HandleRequest(await _tcpListener.AcceptTcpClientAsync());
+                    HandleRequest(await _tcpListener.AcceptTcpClientAsync(cancellationToken));
 
                     if (cancellationToken is not {IsCancellationRequested: true})
-                        continue;
-
-                    _tcpListener.Stop();
+                        throw new TaskCanceledException();
+                }
+                catch (TaskCanceledException)
+                {
+                    Stop();
                     break;
                 }
                 catch (Exception ex)
@@ -188,6 +191,8 @@ namespace MarkopDns
             var clientReceiveStream = tcpClient.GetStream();
             clientReceiveStream.Write(buffer, 0, buffer.Length);
 
+            await clientReceiveStream.WaitUtilDataAvailable();
+
             var now = DateTime.UtcNow.Ticks;
 
             while (tcpClient.Connected)
@@ -279,6 +284,8 @@ namespace MarkopDns
             var clientReceiveStream = tcpClient.GetStream();
             clientReceiveStream.Write(buffer, 0, buffer.Length);
 
+            await clientReceiveStream.WaitUtilDataAvailable();
+
             // Read response data from target connection
             await using var memoryStreamReceive = new MemoryStream();
             while (clientReceiveStream.DataAvailable)
@@ -294,7 +301,7 @@ namespace MarkopDns
             // Write response to client
             var responseBuffer = memoryStreamReceive.ToArray();
             await networkStream.WriteAsync(responseBuffer);
-
+            
             // Close client connection
             e.Close();
         }
