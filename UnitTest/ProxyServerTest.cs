@@ -88,7 +88,7 @@ namespace UnitTest
         }
 
         [Fact]
-        async public void TestCase2_HttpV2()
+        async public void TestCase3_HttpV2()
         {
             var config = new Config
             {
