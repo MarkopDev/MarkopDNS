@@ -14,14 +14,18 @@ namespace MarkopDns
 {
     public class DnsServer
     {
-        private readonly Config _config;
         private readonly UdpClient _udpClient;
+        private readonly DnsServerConfig _dnsConfig;
+        private CancellationTokenSource? _cancellationTokenSource;
 
         private DnsServer(Config config)
         {
-            _config = config;
+            _dnsConfig = config.Dns ?? throw new Exception("Provide dns server config inside config.yml");
 
-            _udpClient = new UdpClient(new IPEndPoint(IPAddress.Parse(config.Dns!.Host), config.Dns.Port));
+            var port = _dnsConfig.Port ?? throw new Exception("Provide server port for dns inside config.yml");
+            var host = _dnsConfig.Host ?? throw new Exception("Provide server host for dns inside config.yml");
+
+            _udpClient = new UdpClient(new IPEndPoint(IPAddress.Parse(host), port));
         }
 
         public static DnsServer GetInstance(Config config)
@@ -31,7 +35,9 @@ namespace MarkopDns
 
         public async void Start(CancellationToken? cat = null)
         {
-            var cancellationToken = cat ?? new CancellationTokenSource().Token;
+            _cancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = cat ?? _cancellationTokenSource.Token;
+            Console.WriteLine("[+] Dns Server Started");
             while (true)
             {
                 try
@@ -85,13 +91,12 @@ namespace MarkopDns
                 var queryClass = BinaryPrimitives.ReadUInt16BigEndian(e.Buffer[offset..(offset + 2)]);
                 offset += 2;
 
-                questions.Add(new Question
-                {
-                    Name = name,
-                    Type = type,
-                    Class = queryClass,
-                    Data = e.Buffer[sOffset..offset]
-                });
+                questions.Add(new Question(
+                    name,
+                    type,
+                    queryClass,
+                    e.Buffer[sOffset..offset]
+                ));
             }
 
             var buffer = e.Buffer.ToArray();
@@ -108,12 +113,14 @@ namespace MarkopDns
 
             foreach (var question in questions)
             {
-                var matchedQuestion = _config.Dns!.Records!.FirstOrDefault(record => record.Key == question.Name
-                    && record.Value.Type == Enum.GetName((DnsType) question.Type));
+                var records = _dnsConfig.Records ?? throw new Exception("Provide dns record inside config.yml");
+
+                var matchedQuestion = records.FirstOrDefault(record =>
+                    record.Key == question.Name && record.Value.Type == Enum.GetName((DnsType) question.Type));
 
                 if (matchedQuestion.Equals(default(KeyValuePair<string, Record>)))
                 {
-                    var dnsServerProxy = new IPEndPoint(IPAddress.Parse(_config.Dns.Default!), 53);
+                    var dnsServerProxy = new IPEndPoint(IPAddress.Parse(_dnsConfig.Default ?? "8.8.8.8"), 53);
                     using var proxyClient = new UdpClient();
                     proxyClient.Connect(dnsServerProxy);
                     await proxyClient.SendAsync(e.Buffer, e.Buffer.Length);
@@ -126,7 +133,7 @@ namespace MarkopDns
                 var typeBytes = BitConverter.GetBytes(question.Type).Reverse().ToArray();
                 var classBytes = BitConverter.GetBytes(question.Class).Reverse().ToArray();
 
-                var ttlBytes = BitConverter.GetBytes(_config.Dns!.Ttl).Reverse().ToArray();
+                var ttlBytes = BitConverter.GetBytes(_dnsConfig.Ttl ?? 150).Reverse().ToArray();
 
                 var ipBytes = IPAddress.Parse("127.0.0.1").GetAddressBytes();
                 var dataLengthBytes = BitConverter.GetBytes((ushort) ipBytes.Length).Reverse().ToArray();
@@ -157,6 +164,7 @@ namespace MarkopDns
 
         public void Stop()
         {
+            _cancellationTokenSource?.Cancel();
             _udpClient.Close();
         }
     }

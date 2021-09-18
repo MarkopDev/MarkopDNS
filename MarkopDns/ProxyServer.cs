@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Linq;
@@ -15,14 +16,19 @@ namespace MarkopDns
 {
     public class ProxyServer
     {
-        private readonly Config _config;
-        private readonly TcpListener _tcpListener;
+        private readonly ProxyServerConfig _proxyConfig;
+        private readonly IEnumerable<TcpListener> _tcpListeners;
+        private CancellationTokenSource? _cancellationTokenSource;
 
         private ProxyServer(Config config)
         {
-            _config = config;
-            _tcpListener = new TcpListener(new IPEndPoint(IPAddress.Parse(config.Proxy!.Host),
-                config.Proxy.Port));
+            _proxyConfig = config.Proxy ?? throw new Exception("Provide proxy server config inside config.yml");
+
+            var ports = _proxyConfig.Port ?? throw new Exception("Provide server port for proxy inside config.yml");
+            var host = _proxyConfig.Host ?? throw new Exception("Provide server host for proxy inside config.yml");
+
+            _tcpListeners = ports.Select(port =>
+                new TcpListener(new IPEndPoint(IPAddress.Parse(host), port)));
         }
 
         public static ProxyServer GetInstance(Config config)
@@ -30,15 +36,25 @@ namespace MarkopDns
             return new ProxyServer(config);
         }
 
-        public async void Start(CancellationToken? cat = null)
+        public void Start(CancellationToken? cat = null)
         {
-            var cancellationToken = cat ?? new CancellationTokenSource().Token;
-            _tcpListener.Start();
+            _cancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = cat ?? _cancellationTokenSource.Token;
+            foreach (var listener in _tcpListeners)
+                Start(listener, cancellationToken);
+        }
+
+        private async void Start(TcpListener listener, CancellationToken cancellationToken)
+        {
+            listener.Start();
+            var listenerLocalEndpoint = (IPEndPoint) listener.LocalEndpoint;
+            Console.WriteLine("[+] Proxy Server listen to " +
+                              $"{listenerLocalEndpoint.Address}:{listenerLocalEndpoint.Port}");
             while (true)
             {
                 try
                 {
-                    HandleRequest(await _tcpListener.AcceptTcpClientAsync(cancellationToken));
+                    HandleRequest(await listener.AcceptTcpClientAsync(cancellationToken));
 
                     if (cancellationToken is not {IsCancellationRequested: true})
                         throw new TaskCanceledException();
@@ -183,9 +199,10 @@ namespace MarkopDns
             var hostEntry = await Dns.GetHostEntryAsync(host);
             var ipAddress = hostEntry.AddressList.First();
 
+            var clientLocalEndPoint = e.Client.LocalEndPoint ?? throw new Exception("LocalEndpoint is not available");
 
             // Connect to target server and pass the request data
-            using var tcpClient = new TcpClient(ipAddress.ToString(), ((IPEndPoint) e.Client.LocalEndPoint!).Port);
+            using var tcpClient = new TcpClient(ipAddress.ToString(), ((IPEndPoint) clientLocalEndPoint).Port);
 
             // Write request data to target connection
             var clientReceiveStream = tcpClient.GetStream();
@@ -241,7 +258,7 @@ namespace MarkopDns
                     continue;
                 }
 
-                if (DateTime.UtcNow.Ticks - now > _config.Proxy!.TimeToAlive * 10_000_000)
+                if (DateTime.UtcNow.Ticks - now > _proxyConfig.TimeToAlive * 10_000_000)
                     try
                     {
                         await networkStream.WriteAsync(new byte[] {0});
@@ -276,9 +293,10 @@ namespace MarkopDns
             var hostEntry = await Dns.GetHostEntryAsync(host);
             var ipAddress = hostEntry.AddressList.First();
 
+            var clientLocalEndPoint = e.Client.LocalEndPoint ?? throw new Exception("LocalEndpoint is not available");
 
             // Connect to target server and pass the request data
-            using var tcpClient = new TcpClient(ipAddress.ToString(), ((IPEndPoint) e.Client.LocalEndPoint!).Port);
+            using var tcpClient = new TcpClient(ipAddress.ToString(), ((IPEndPoint) clientLocalEndPoint).Port);
 
             // Write request data to target connection
             var clientReceiveStream = tcpClient.GetStream();
@@ -301,14 +319,17 @@ namespace MarkopDns
             // Write response to client
             var responseBuffer = memoryStreamReceive.ToArray();
             await networkStream.WriteAsync(responseBuffer);
-            
+
             // Close client connection
             e.Close();
         }
 
         public void Stop()
         {
-            _tcpListener.Stop();
+            _cancellationTokenSource?.Cancel();
+
+            foreach (var listener in _tcpListeners)
+                listener.Stop();
         }
     }
 }

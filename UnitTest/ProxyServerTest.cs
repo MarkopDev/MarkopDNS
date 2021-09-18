@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -18,7 +19,7 @@ namespace UnitTest
         }
 
         [Fact]
-        async public void TestCase1_HttpV1()
+        public async void TestCase1_HttpV1()
         {
             var config = new Config
             {
@@ -29,7 +30,7 @@ namespace UnitTest
                 Proxy = new ProxyServerConfig
                 {
                     Host = "127.0.0.1",
-                    Port = 80,
+                    Port = new List<int> {80},
                     TimeToAlive = 2
                 }
             };
@@ -53,7 +54,7 @@ namespace UnitTest
         }
 
         [Fact]
-        async public void TestCase2_Https()
+        public async void TestCase2_Https()
         {
             var config = new Config
             {
@@ -64,7 +65,7 @@ namespace UnitTest
                 Proxy = new ProxyServerConfig
                 {
                     Host = "127.0.0.1",
-                    Port = 443,
+                    Port = new List<int> {443},
                     TimeToAlive = 2
                 }
             };
@@ -88,7 +89,7 @@ namespace UnitTest
         }
 
         [Fact]
-        async public void TestCase3_HttpV2()
+        public async void TestCase3_HttpV2()
         {
             var config = new Config
             {
@@ -99,7 +100,7 @@ namespace UnitTest
                 Proxy = new ProxyServerConfig
                 {
                     Host = "127.0.0.1",
-                    Port = 80,
+                    Port = new List<int> {80},
                     TimeToAlive = 2
                 }
             };

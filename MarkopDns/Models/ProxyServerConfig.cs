@@ -1,9 +1,11 @@
-﻿namespace MarkopDns.Models
+﻿using System.Collections.Generic;
+
+namespace MarkopDns.Models
 {
     public class ProxyServerConfig
     {
-        public int Port { get; init; }
-        public string Host { get; init; }
-        public int TimeToAlive { get; init; }
+        public List<int>? Port { get; init; }
+        public string? Host { get; init; }
+        public int? TimeToAlive { get; init; }
     }
 }

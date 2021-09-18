@@ -25,10 +25,7 @@ namespace MarkopDns
             _tokenSource = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken.None);
 
             dnsServer.Start(_tokenSource.Token);
-            Console.WriteLine("[+] Dns Server Started");
-
             proxyServer.Start(_tokenSource.Token);
-            Console.WriteLine("[+] Proxy Server Started");
 
             _tokenSource.Token.WaitHandle.WaitOne();
         }
