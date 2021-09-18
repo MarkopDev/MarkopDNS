@@ -37,7 +37,12 @@ namespace MarkopDns
         {
             _cancellationTokenSource = new CancellationTokenSource();
             var cancellationToken = cat ?? _cancellationTokenSource.Token;
-            Console.WriteLine("[+] Dns Server Started");
+
+            var localEndPoint =
+                _udpClient.Client.LocalEndPoint ?? throw new Exception("LocalEndpoint is not available");
+
+            Console.WriteLine("[+] Dns Server listen to " +
+                              $"{((IPEndPoint) localEndPoint).Address}:{((IPEndPoint) localEndPoint).Port}");
             while (true)
             {
                 try

@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  markop-dns:
+    build: .
+    image: markop-dns:latest
+    container_name: markop-dns
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./config.yml:/markop-dns/config.yml
