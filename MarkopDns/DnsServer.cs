@@ -49,7 +49,7 @@ namespace MarkopDns
                 {
                     HandleRequest(await _udpClient.ReceiveAsync(cancellationToken));
 
-                    if (cancellationToken is not {IsCancellationRequested: true})
+                    if (cancellationToken is {IsCancellationRequested: true})
                         throw new TaskCanceledException();
                 }
                 catch (TaskCanceledException)
@@ -140,7 +140,9 @@ namespace MarkopDns
 
                 var ttlBytes = BitConverter.GetBytes(_dnsConfig.Ttl ?? 150).Reverse().ToArray();
 
-                var ipBytes = IPAddress.Parse("127.0.0.1").GetAddressBytes();
+                var address = matchedQuestion.Value.Address ??
+                              throw new Exception($"Provide address for {matchedQuestion.Key}");
+                var ipBytes = IPAddress.Parse(address).GetAddressBytes();
                 var dataLengthBytes = BitConverter.GetBytes((ushort) ipBytes.Length).Reverse().ToArray();
 
                 var answersBytes = new byte[]

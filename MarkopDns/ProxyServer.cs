@@ -56,7 +56,7 @@ namespace MarkopDns
                 {
                     HandleRequest(await listener.AcceptTcpClientAsync(cancellationToken));
 
-                    if (cancellationToken is not {IsCancellationRequested: true})
+                    if (cancellationToken is {IsCancellationRequested: true})
                         throw new TaskCanceledException();
                 }
                 catch (TaskCanceledException)
