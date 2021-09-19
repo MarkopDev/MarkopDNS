@@ -100,7 +100,7 @@ namespace UnitTest
                 Proxy = new ProxyServerConfig
                 {
                     Host = "127.0.0.1",
-                    Port = new List<int> {80},
+                    Port = new List<int> {1080},
                     TimeToAlive = 2
                 }
             };
@@ -113,9 +113,9 @@ namespace UnitTest
                 DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
             };
 
-            httpClient.DefaultRequestHeaders.Host = "ce.markop.ir";
+            httpClient.DefaultRequestHeaders.Host = "http2.markop.ir";
 
-            var httpResponseMessage = await httpClient.GetAsync("http://127.0.0.1:80", cancellationToken.Token);
+            var httpResponseMessage = await httpClient.GetAsync("http://127.0.0.1:1080", cancellationToken.Token);
 
             Assert.True(httpResponseMessage.IsSuccessStatusCode);
 
