@@ -1,11 +1,11 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
-using MarkopDns.Models;
+using MarkopProxy.Models;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace MarkopDns
+namespace MarkopProxy
 {
     class Program
     {

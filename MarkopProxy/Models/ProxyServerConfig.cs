@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace MarkopDns.Models
+namespace MarkopProxy.Models
 {
     public class ProxyServerConfig
     {

@@ -1,4 +1,4 @@
-﻿namespace MarkopDns.Models
+﻿namespace MarkopProxy.Models
 {
     public record Question(
         string Name,

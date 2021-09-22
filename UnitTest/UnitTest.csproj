@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MarkopDns\MarkopDns.csproj" />
+    <ProjectReference Include="..\MarkopProxy\MarkopProxy.csproj" />
   </ItemGroup>
 
 </Project>

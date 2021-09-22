@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Threading;
-using MarkopDns;
-using MarkopDns.Models;
+using MarkopProxy;
+using MarkopProxy.Models;
 using Xunit;
-using Record = MarkopDns.Models.Record;
+using Record = MarkopProxy.Models.Record;
 
 namespace UnitTest
 {

@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
-using MarkopDns;
-using MarkopDns.Models;
+using MarkopProxy;
+using MarkopProxy.Models;
 using Xunit;
 using Xunit.Abstractions;
 

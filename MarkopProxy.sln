@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# 
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarkopDns", "MarkopDns\MarkopDns.csproj", "{10177750-21A0-4BAB-B9E3-12F500498A0C}"
+#
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarkopProxy", "MarkopProxy\MarkopProxy.csproj", "{10177750-21A0-4BAB-B9E3-12F500498A0C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTest", "UnitTest\UnitTest.csproj", "{709CDC0C-075C-47A5-8C0E-406E735989F2}"
 EndProject

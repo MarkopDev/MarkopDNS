@@ -1,16 +1,16 @@
 ﻿using System;
-using System.Net;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Net.Sockets;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using MarkopDns.Enums;
-using MarkopDns.Models;
+using MarkopProxy.Enums;
+using MarkopProxy.Models;
 
-namespace MarkopDns
+namespace MarkopProxy
 {
     public class DnsServer
     {

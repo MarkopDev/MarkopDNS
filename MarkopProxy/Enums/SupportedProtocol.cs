@@ -1,4 +1,4 @@
-﻿namespace MarkopDns.Enums
+﻿namespace MarkopProxy.Enums
 {
     public enum SupportedProtocol
     {

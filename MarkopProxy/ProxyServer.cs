@@ -2,17 +2,17 @@
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Net.Sockets;
 using System.Threading.Tasks;
-using MarkopDns.Enums;
-using MarkopDns.Exceptions;
-using MarkopDns.Models;
+using MarkopProxy.Enums;
+using MarkopProxy.Exceptions;
+using MarkopProxy.Models;
 
-namespace MarkopDns
+namespace MarkopProxy
 {
     public class ProxyServer
     {

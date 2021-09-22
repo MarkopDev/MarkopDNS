@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MarkopDns.Exceptions
+namespace MarkopProxy.Exceptions
 {
     public class UnsupportedProtocol : Exception
     {

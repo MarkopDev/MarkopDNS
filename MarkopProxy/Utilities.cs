@@ -3,7 +3,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MarkopDns
+namespace MarkopProxy
 {
     public static class Utilities
     {
