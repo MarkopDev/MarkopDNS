@@ -132,6 +132,8 @@ namespace MarkopProxy
                     var response = await proxyClient.ReceiveAsync();
 
                     await _udpClient.SendAsync(response.Buffer, response.Buffer.Length, e.RemoteEndPoint);
+                    
+                    Console.WriteLine($"[:] {question.Name} {(DnsType)question.Type} pass to {_dnsConfig.Default ?? "8.8.8.8"}");
                     return;
                 }
 
@@ -164,6 +166,8 @@ namespace MarkopProxy
                     .ToArray();
 
                 buffer = buffer.Concat(answersBytes).ToArray();
+                    
+                Console.WriteLine($"[:] {question.Name} {(DnsType)question.Type} resolved to {matchedQuestion.Key}");
             }
 
             await _udpClient.SendAsync(buffer, buffer.Length, e.RemoteEndPoint);
