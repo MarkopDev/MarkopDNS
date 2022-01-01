@@ -170,7 +170,7 @@ namespace MarkopProxy
 
             string? host = null;
 
-            for (var i = 0; i < extensionsLength && buffer.Length > offset; i++)
+            for (var i = 0; i < extensionsLength && buffer.Length > offset;)
             {
                 var extensionType = BinaryPrimitives.ReadUInt16BigEndian(buffer[(offset + i)..(offset + i + 2)]);
                 var extensionDataLength =
@@ -247,9 +247,19 @@ namespace MarkopProxy
                         memoryStreamReceive.Write(data, 0, bytes);
                     }
 
-                    // Write response to target
-                    var responseBuffer = memoryStreamReceive.ToArray();
-                    await clientReceiveStream.WriteAsync(responseBuffer);
+                    try
+                    {
+                        // Write response to target
+                        var responseBuffer = memoryStreamReceive.ToArray();
+                        await clientReceiveStream.WriteAsync(responseBuffer);
+                    }
+                    catch
+                    {
+                        e.Close();
+                        tcpClient.Close();
+
+                        Console.WriteLine("Connection Closed");
+                    }
 
                     now = DateTime.UtcNow.Ticks;
 
