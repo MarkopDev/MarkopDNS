@@ -18,7 +18,7 @@ namespace MarkopProxy
         {
             return Task.Run(async () =>
             {
-                while (!networkStream.DataAvailable)
+                while (!networkStream.DataAvailable && networkStream.CanRead && networkStream.Socket.Connected)
                     await Task.Delay(5);
             });
         }

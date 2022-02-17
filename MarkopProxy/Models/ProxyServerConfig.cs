@@ -7,5 +7,6 @@ namespace MarkopProxy.Models
         public List<int>? Port { get; init; }
         public string? Host { get; init; }
         public int? TimeToAlive { get; init; }
+        public bool? Logging { get; init; }
     }
 }

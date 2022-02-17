@@ -30,8 +30,7 @@ namespace UnitTest
                 Proxy = new ProxyServerConfig
                 {
                     Host = "127.0.0.1",
-                    Port = new List<int> {80},
-                    TimeToAlive = 2
+                    Port = new List<int> {80}
                 }
             };
             var cancellationToken = new CancellationTokenSource();
@@ -66,7 +65,6 @@ namespace UnitTest
                 {
                     Host = "127.0.0.1",
                     Port = new List<int> {443},
-                    TimeToAlive = 2
                 }
             };
             var cancellationToken = new CancellationTokenSource();
@@ -87,7 +85,7 @@ namespace UnitTest
 
             cancellationToken.Cancel();
         }
-
+        
         [Fact]
         public async void TestCase3_HttpV2()
         {
@@ -100,8 +98,7 @@ namespace UnitTest
                 Proxy = new ProxyServerConfig
                 {
                     Host = "127.0.0.1",
-                    Port = new List<int> {1080},
-                    TimeToAlive = 2
+                    Port = new List<int> {1080}
                 }
             };
             var cancellationToken = new CancellationTokenSource();

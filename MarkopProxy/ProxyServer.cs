@@ -54,7 +54,18 @@ namespace MarkopProxy
             {
                 try
                 {
-                    HandleRequest(await listener.AcceptTcpClientAsync(cancellationToken));
+                    var tcpClient = await listener.AcceptTcpClientAsync(cancellationToken);
+
+                    void CallBack(object? param)
+                    {
+                        var array = param as object[];
+                        var client = array?[0] as TcpClient;
+                        var token = array?[1] as CancellationToken? ?? default;
+                        if (client != null)
+                            HandleRequest(client, token);
+                    }
+
+                    ThreadPool.QueueUserWorkItem(CallBack, new object[] {tcpClient, cancellationToken});
 
                     if (cancellationToken is {IsCancellationRequested: true})
                         throw new TaskCanceledException();
@@ -66,12 +77,13 @@ namespace MarkopProxy
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.ToString());
+                    if (_proxyConfig.Logging ?? false)
+                        Console.WriteLine(ex.ToString());
                 }
             }
         }
 
-        private async void HandleRequest(TcpClient e)
+        private async void HandleRequest(TcpClient e, CancellationToken cancellationToken)
         {
             var networkStream = e.GetStream();
 
@@ -79,7 +91,18 @@ namespace MarkopProxy
 
             // Read 1024 byte of request to confirm the request is http
             var request = new byte[1024];
-            request = request.Take(await networkStream.ReadAsync(request)).ToArray();
+            int readBytes;
+            try
+            {
+                readBytes = await networkStream.ReadAsync(request, cancellationToken);
+            }
+            catch
+            {
+                e.Close();
+                return;
+            }
+
+            request = request.Take(readBytes).ToArray();
 
             // handshake content type
             if (request[0] == 0x16
@@ -114,7 +137,7 @@ namespace MarkopProxy
             while (networkStream.DataAvailable)
             {
                 var data = new byte[2048];
-                var bytes = networkStream.Read(data, 0, data.Length);
+                var bytes = await networkStream.ReadAsync(data, 0, data.Length, cancellationToken);
                 memoryStream.Write(data, 0, bytes);
             }
 
@@ -126,10 +149,10 @@ namespace MarkopProxy
                 switch (requestProtocol)
                 {
                     case SupportedProtocol.Http:
-                        await HandleHttpRequest(e, networkStream, buffer);
+                        await HandleHttpRequest(e, networkStream, buffer, cancellationToken);
                         break;
                     case SupportedProtocol.Https:
-                        await HandleHttpsRequest(e, networkStream, buffer);
+                        await HandleHttpsRequest(e, buffer, cancellationToken);
                         break;
                     default:
                         e.Close();
@@ -143,11 +166,13 @@ namespace MarkopProxy
             catch (Exception ex)
             {
                 e.Close();
-                Console.WriteLine(ex);
+                if (_proxyConfig.Logging ?? false)
+                    Console.WriteLine(ex);
             }
         }
 
-        private async Task HandleHttpsRequest(TcpClient e, NetworkStream networkStream, byte[] buffer)
+        private async Task HandleHttpsRequest(TcpClient e, byte[] buffer,
+            CancellationToken cancellationToken)
         {
             // https://datatracker.ietf.org/doc/html/rfc5246
             var offset = /*Handshake type offset*/6 + /*Handshake length*/3 + /*Protocol Version*/2 + /*Random*/32;
@@ -196,95 +221,133 @@ namespace MarkopProxy
                 throw new UnsupportedProtocol();
 
             // Resolve hostname
-            var hostEntry = await Dns.GetHostEntryAsync(host);
+            var hostEntry = await Dns.GetHostEntryAsync(host, cancellationToken);
             var ipAddress = hostEntry.AddressList.First();
 
             var clientLocalEndPoint = e.Client.LocalEndPoint ?? throw new Exception("LocalEndpoint is not available");
 
             // Connect to target server and pass the request data
-            using var tcpClient = new TcpClient(ipAddress.ToString(), ((IPEndPoint) clientLocalEndPoint).Port);
+            var tcpClient = new TcpClient(ipAddress.ToString(), ((IPEndPoint) clientLocalEndPoint).Port);
+
+            var networkStream = e.GetStream();
+            var clientReceiveStream = tcpClient.GetStream();
 
             // Write request data to target connection
-            var clientReceiveStream = tcpClient.GetStream();
-            clientReceiveStream.Write(buffer, 0, buffer.Length);
+            await clientReceiveStream.WriteAsync(buffer, cancellationToken);
 
-            await clientReceiveStream.WaitUtilDataAvailable();
+            var lastConnectionDate = DateTime.UtcNow;
 
-            var now = DateTime.UtcNow.Ticks;
-
-            while (tcpClient.Connected)
+            void CloseConnections()
             {
-                if (clientReceiveStream.DataAvailable)
+                e.Close();
+                tcpClient.Close();
+                if (_proxyConfig.Logging ?? false)
+                    Console.WriteLine("Connection Closed");
+            }
+
+            async void TargetConnection(object? _)
+            {
+                while (tcpClient.Connected)
                 {
-                    // Read response data from target connection
-                    await using var memoryStreamReceive = new MemoryStream();
-                    while (clientReceiveStream.DataAvailable)
-                    {
-                        var data = new byte[2048];
-                        var bytes = clientReceiveStream.Read(data, 0, data.Length);
-                        memoryStreamReceive.Write(data, 0, bytes);
-                    }
-
-                    // Write response to client
-                    var responseBuffer = memoryStreamReceive.ToArray();
-                    await networkStream.WriteAsync(responseBuffer);
-
-                    now = DateTime.UtcNow.Ticks;
-
-                    Console.WriteLine("Server -> Client");
-
-                    continue;
-                }
-
-                if (networkStream.DataAvailable)
-                {
-                    // Read response data from client connection
-                    await using var memoryStreamReceive = new MemoryStream();
-                    while (networkStream.DataAvailable)
-                    {
-                        var data = new byte[2048];
-                        var bytes = networkStream.Read(data, 0, data.Length);
-                        memoryStreamReceive.Write(data, 0, bytes);
-                    }
-
                     try
                     {
+                        // Read response data from target connection
+                        await using var memoryStreamReceive = new MemoryStream();
+                        do
+                        {
+                            var data = new byte[2048];
+                            var bytes = await clientReceiveStream.ReadAsync(data, cancellationToken);
+                            if (bytes == 0)
+                            {
+                                CloseConnections();
+                                return;
+                            }
+
+                            await memoryStreamReceive.WriteAsync(data.AsMemory(0, bytes), cancellationToken);
+                        } while (clientReceiveStream.DataAvailable);
+
+                        // Write response to client
+                        var responseBuffer = memoryStreamReceive.ToArray();
+                        await networkStream.WriteAsync(responseBuffer, cancellationToken);
+                    }
+                    catch
+                    {
+                        CloseConnections();
+                    }
+
+                    if (_proxyConfig.Logging ?? false)
+                        Console.WriteLine("Server -> Client");
+                    lastConnectionDate = DateTime.UtcNow;
+                }
+            }
+
+            async void ClientConnection(object? _)
+            {
+                while (e.Connected)
+                {
+                    try
+                    {
+                        // Read response data from client connection
+                        await using var memoryStreamReceive = new MemoryStream();
+                        do
+                        {
+                            var data = new byte[2048];
+                            var bytes = await networkStream.ReadAsync(data, cancellationToken);
+                            if (bytes == 0)
+                            {
+                                CloseConnections();
+                                return;
+                            }
+
+                            await memoryStreamReceive.WriteAsync(data.AsMemory(0, bytes), cancellationToken);
+                        } while (networkStream.DataAvailable);
+
                         // Write response to target
                         var responseBuffer = memoryStreamReceive.ToArray();
-                        await clientReceiveStream.WriteAsync(responseBuffer);
+                        await clientReceiveStream.WriteAsync(responseBuffer, cancellationToken);
                     }
                     catch
                     {
-                        e.Close();
-                        tcpClient.Close();
-
-                        Console.WriteLine("Connection Closed");
+                        CloseConnections();
                     }
 
-                    now = DateTime.UtcNow.Ticks;
-
-                    Console.WriteLine("Client -> Server");
-
-                    continue;
+                    if (_proxyConfig.Logging ?? false)
+                        Console.WriteLine("Client -> Server");
+                    lastConnectionDate = DateTime.UtcNow;
                 }
+            }
 
-                if (DateTime.UtcNow.Ticks - now > _proxyConfig.TimeToAlive * 10_000_000)
+            async void CheckConnection(object? _)
+            {
+                while (e.Connected || tcpClient.Connected)
+                {
                     try
                     {
-                        await networkStream.WriteAsync(new byte[] {0});
-                        await clientReceiveStream.WriteAsync(new byte[] {0});
+                        await Task.Delay(1000, cancellationToken);
+
+                        await e.Client.SendAsync(Array.Empty<byte>(), SocketFlags.None);
+                        await tcpClient.Client.SendAsync(Array.Empty<byte>(), SocketFlags.None);
                     }
                     catch
                     {
-                        e.Close();
-                        tcpClient.Close();
-
-                        Console.WriteLine("Connection Closed");
+                        // ignored
                     }
+
+                    if (e.Connected && tcpClient.Connected && DateTime.UtcNow.Ticks - lastConnectionDate.Ticks <
+                        _proxyConfig.TimeToAlive * 10_000_000)
+                        continue;
+
+                    CloseConnections();
+                }
             }
+
+            ThreadPool.QueueUserWorkItem(CheckConnection);
+            ThreadPool.QueueUserWorkItem(TargetConnection);
+            ThreadPool.QueueUserWorkItem(ClientConnection);
         }
 
-        private async Task HandleHttpRequest(TcpClient e, Stream networkStream, byte[] buffer)
+        private async Task HandleHttpRequest(TcpClient e, Stream networkStream, byte[] buffer,
+            CancellationToken cancellationToken)
         {
             // Find host header
             var bufferLength = buffer.Length;
@@ -300,7 +363,7 @@ namespace MarkopProxy
             var host = Encoding.ASCII.GetString(hostHeader.Skip(6).ToArray());
 
             // Resolve hostname
-            var hostEntry = await Dns.GetHostEntryAsync(host);
+            var hostEntry = await Dns.GetHostEntryAsync(host, cancellationToken);
             var ipAddress = hostEntry.AddressList.First();
 
             var clientLocalEndPoint = e.Client.LocalEndPoint ?? throw new Exception("LocalEndpoint is not available");
@@ -310,7 +373,7 @@ namespace MarkopProxy
 
             // Write request data to target connection
             var clientReceiveStream = tcpClient.GetStream();
-            clientReceiveStream.Write(buffer, 0, buffer.Length);
+            await clientReceiveStream.WriteAsync(buffer, cancellationToken);
 
             await clientReceiveStream.WaitUtilDataAvailable();
 
@@ -319,7 +382,7 @@ namespace MarkopProxy
             while (clientReceiveStream.DataAvailable)
             {
                 var data = new byte[2048];
-                var bytes = clientReceiveStream.Read(data, 0, data.Length);
+                var bytes = await clientReceiveStream.ReadAsync(data, cancellationToken);
                 memoryStreamReceive.Write(data, 0, bytes);
             }
 
@@ -328,7 +391,7 @@ namespace MarkopProxy
 
             // Write response to client
             var responseBuffer = memoryStreamReceive.ToArray();
-            await networkStream.WriteAsync(responseBuffer);
+            await networkStream.WriteAsync(responseBuffer, cancellationToken);
 
             // Close client connection
             e.Close();
