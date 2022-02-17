@@ -17,6 +17,38 @@ This flow describe how client send a Http request to example.com server
 6. Example.com server sends response to Markop Proxy server
 7. Markop Proxy server sends response to client OS
 
+## Stress Test
+Proxy HTTPS traffic to web server created by [serve](https://www.npmjs.com/package/serve) \
+Serve Command:
+```shell
+$  serve -s build --ssl-cert cert.pem --ssl-key key.pem --ssl-pass pass.key -l 443
+```
+Result:
+```shell
+[+] Start Stress Test
+[+] Success: 1000 Failed: 0
+[+] AVG: 2461.872 MAX: 3622 MIN: 874
+[+] Success: 1000 Failed: 0
+[+] AVG: 1492.546 MAX: 1809 MIN: 644
+[+] Success: 1000 Failed: 0
+[+] AVG: 592.105 MAX: 657 MIN: 454
+[+] Success: 1000 Failed: 0
+[+] AVG: 305.548 MAX: 416 MIN: 276
+[+] Success: 1000 Failed: 0
+[+] AVG: 245.76 MAX: 342 MIN: 185
+[+] Success: 1000 Failed: 0
+[+] AVG: 225.83 MAX: 351 MIN: 159
+[+] Success: 1000 Failed: 0
+[+] AVG: 224.214 MAX: 296 MIN: 140
+[+] Success: 1000 Failed: 0
+[+] AVG: 230.956 MAX: 331 MIN: 162
+[+] Success: 1000 Failed: 0
+[+] AVG: 232.542 MAX: 316 MIN: 83
+[+] Success: 1000 Failed: 0
+[+] AVG: 234.705 MAX: 291 MIN: 178
+[+] Stress Test Finished
+```
+
 ## Feature
 - Support HTTPv1, TLS protocols
 - Multiple listening sockets
