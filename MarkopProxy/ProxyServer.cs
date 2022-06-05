@@ -222,7 +222,7 @@ namespace MarkopProxy
 
             // Resolve hostname
             var hostEntry = await Dns.GetHostEntryAsync(host, cancellationToken);
-            var ipAddress = hostEntry.AddressList.First();
+            var ipAddress = hostEntry.AddressList.First(address => address.AddressFamily == AddressFamily.InterNetwork);
 
             var clientLocalEndPoint = e.Client.LocalEndPoint ?? throw new Exception("LocalEndpoint is not available");
 

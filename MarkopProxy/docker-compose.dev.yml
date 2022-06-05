@@ -1,13 +1,13 @@
 version: "3.8"
 
 services:
-  markop-dns:
+  markop-proxy:
     build: .
-    image: markop-dns:latest
-    container_name: markop-dns
+    image: markop-proxy:latest
+    container_name: markop-proxy
     restart: always
     ports:
       - 80:80
       - 443:443
     volumes:
-      - ./config.yml:/markop-dns/config.yml
+      - ./config.yml:/markop-proxy/config.yml

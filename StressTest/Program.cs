@@ -1,5 +1,9 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Linq;
+using System.Net.Http;
+using System.Threading;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 
 Console.WriteLine("[+] Start Stress Test");
 
@@ -58,3 +62,4 @@ for (var j = 0; j < 10; j++)
 }
 
 Console.WriteLine("[+] Stress Test Finished");
+Console.ReadLine();

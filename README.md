@@ -27,25 +27,25 @@ Result:
 ```shell
 [+] Start Stress Test
 [+] Success: 1000 Failed: 0
-[+] AVG: 2461.872 MAX: 3622 MIN: 874
+[+] AVG: 580.708 MAX: 937 MIN: 82
 [+] Success: 1000 Failed: 0
-[+] AVG: 1492.546 MAX: 1809 MIN: 644
+[+] AVG: 209.4 MAX: 352 MIN: 119
 [+] Success: 1000 Failed: 0
-[+] AVG: 592.105 MAX: 657 MIN: 454
+[+] AVG: 237.525 MAX: 346 MIN: 126
 [+] Success: 1000 Failed: 0
-[+] AVG: 305.548 MAX: 416 MIN: 276
+[+] AVG: 292.515 MAX: 426 MIN: 190
 [+] Success: 1000 Failed: 0
-[+] AVG: 245.76 MAX: 342 MIN: 185
+[+] AVG: 198.685 MAX: 268 MIN: 142
 [+] Success: 1000 Failed: 0
-[+] AVG: 225.83 MAX: 351 MIN: 159
+[+] AVG: 176.014 MAX: 224 MIN: 63
 [+] Success: 1000 Failed: 0
-[+] AVG: 224.214 MAX: 296 MIN: 140
+[+] AVG: 198.973 MAX: 249 MIN: 163
 [+] Success: 1000 Failed: 0
-[+] AVG: 230.956 MAX: 331 MIN: 162
+[+] AVG: 206.086 MAX: 272 MIN: 161
 [+] Success: 1000 Failed: 0
-[+] AVG: 232.542 MAX: 316 MIN: 83
+[+] AVG: 181.266 MAX: 267 MIN: 101
 [+] Success: 1000 Failed: 0
-[+] AVG: 234.705 MAX: 291 MIN: 178
+[+] AVG: 178.903 MAX: 266 MIN: 98
 [+] Stress Test Finished
 ```
 
