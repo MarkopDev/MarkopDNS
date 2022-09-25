@@ -7,6 +7,7 @@
         <LangVersion>10</LangVersion>
         <RootNamespace>MarkopProxy</RootNamespace>
         <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>

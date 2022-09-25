@@ -46,8 +46,9 @@ namespace MarkopProxy
 
         private async void Start(TcpListener listener, CancellationToken cancellationToken)
         {
+            listener.Server.SetReUsePort();
             listener.Start();
-            var listenerLocalEndpoint = (IPEndPoint) listener.LocalEndpoint;
+            var listenerLocalEndpoint = (IPEndPoint)listener.LocalEndpoint;
             Console.WriteLine("[+] Proxy Server listen to " +
                               $"{listenerLocalEndpoint.Address}:{listenerLocalEndpoint.Port}");
             while (true)
@@ -65,9 +66,9 @@ namespace MarkopProxy
                             HandleRequest(client, token);
                     }
 
-                    ThreadPool.QueueUserWorkItem(CallBack, new object[] {tcpClient, cancellationToken});
+                    ThreadPool.QueueUserWorkItem(CallBack, new object[] { tcpClient, cancellationToken });
 
-                    if (cancellationToken is {IsCancellationRequested: true})
+                    if (cancellationToken is { IsCancellationRequested: true })
                         throw new TaskCanceledException();
                 }
                 catch (TaskCanceledException)
@@ -227,7 +228,7 @@ namespace MarkopProxy
             var clientLocalEndPoint = e.Client.LocalEndPoint ?? throw new Exception("LocalEndpoint is not available");
 
             // Connect to target server and pass the request data
-            var tcpClient = new TcpClient(ipAddress.ToString(), ((IPEndPoint) clientLocalEndPoint).Port);
+            var tcpClient = new TcpClient(ipAddress.ToString(), ((IPEndPoint)clientLocalEndPoint).Port);
 
             var networkStream = e.GetStream();
             var clientReceiveStream = tcpClient.GetStream();
@@ -258,25 +259,30 @@ namespace MarkopProxy
                             var data = new byte[2048];
                             var bytes = await clientReceiveStream.ReadAsync(data, cancellationToken);
                             if (bytes == 0)
-                            {
-                                CloseConnections();
                                 return;
-                            }
 
                             await memoryStreamReceive.WriteAsync(data.AsMemory(0, bytes), cancellationToken);
                         } while (clientReceiveStream.DataAvailable);
 
+                        if (memoryStreamReceive.Length == 0)
+                        {
+                            CloseConnections();
+                            return;
+                        }
+
                         // Write response to client
                         var responseBuffer = memoryStreamReceive.ToArray();
                         await networkStream.WriteAsync(responseBuffer, cancellationToken);
+
+                        if (_proxyConfig.Logging ?? false)
+                            Console.WriteLine("Server -> Client:\n" + Encoding.UTF8.GetString(responseBuffer));
                     }
                     catch
                     {
                         CloseConnections();
+                        return;
                     }
 
-                    if (_proxyConfig.Logging ?? false)
-                        Console.WriteLine("Server -> Client");
                     lastConnectionDate = DateTime.UtcNow;
                 }
             }
@@ -294,25 +300,30 @@ namespace MarkopProxy
                             var data = new byte[2048];
                             var bytes = await networkStream.ReadAsync(data, cancellationToken);
                             if (bytes == 0)
-                            {
-                                CloseConnections();
                                 return;
-                            }
 
                             await memoryStreamReceive.WriteAsync(data.AsMemory(0, bytes), cancellationToken);
                         } while (networkStream.DataAvailable);
 
+                        if (memoryStreamReceive.Length == 0)
+                        {
+                            CloseConnections();
+                            return;
+                        }
+
                         // Write response to target
                         var responseBuffer = memoryStreamReceive.ToArray();
                         await clientReceiveStream.WriteAsync(responseBuffer, cancellationToken);
+
+                        if (_proxyConfig.Logging ?? false)
+                            Console.WriteLine("Client -> Server:\n" + Encoding.UTF8.GetString(responseBuffer));
                     }
                     catch
                     {
                         CloseConnections();
+                        return;
                     }
 
-                    if (_proxyConfig.Logging ?? false)
-                        Console.WriteLine("Client -> Server");
                     lastConnectionDate = DateTime.UtcNow;
                 }
             }
@@ -325,12 +336,26 @@ namespace MarkopProxy
                     {
                         await Task.Delay(1000, cancellationToken);
 
-                        await e.Client.SendAsync(Array.Empty<byte>(), SocketFlags.None);
-                        await tcpClient.Client.SendAsync(Array.Empty<byte>(), SocketFlags.None);
+                        if (e.Client != null)
+                            await e.Client.SendAsync(Array.Empty<byte>(), SocketFlags.None);
+                        else
+                        {
+                            CloseConnections();
+                            return;
+                        }
+
+                        if (tcpClient.Client != null)
+                            await tcpClient.Client.SendAsync(Array.Empty<byte>(), SocketFlags.None);
+                        else
+                        {
+                            CloseConnections();
+                            return;
+                        }
                     }
                     catch
                     {
-                        // ignored
+                        CloseConnections();
+                        return;
                     }
 
                     if (e.Connected && tcpClient.Connected && DateTime.UtcNow.Ticks - lastConnectionDate.Ticks <
@@ -338,6 +363,7 @@ namespace MarkopProxy
                         continue;
 
                     CloseConnections();
+                    return;
                 }
             }
 
@@ -369,7 +395,7 @@ namespace MarkopProxy
             var clientLocalEndPoint = e.Client.LocalEndPoint ?? throw new Exception("LocalEndpoint is not available");
 
             // Connect to target server and pass the request data
-            using var tcpClient = new TcpClient(ipAddress.ToString(), ((IPEndPoint) clientLocalEndPoint).Port);
+            using var tcpClient = new TcpClient(ipAddress.ToString(), ((IPEndPoint)clientLocalEndPoint).Port);
 
             // Write request data to target connection
             var clientReceiveStream = tcpClient.GetStream();
