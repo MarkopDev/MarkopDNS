@@ -52,6 +52,7 @@ Result:
 ## Feature
 - Support HTTPv1, TLS protocols
 - Multiple listening sockets
+- Support SO_REUSEPORK kernel feature
 
 ## Usage
 ```sh
